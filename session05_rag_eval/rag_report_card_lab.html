@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAG Report Card Lab · Lakeview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#14181F;--ink2:#1E2430;--paper:#F5F3EE;--paper2:#EAE6DD;--line:#D8D3C8;--orange:#FF7A45;--orange-dk:#B8461A;--muted:#5A6170;--pass:#1F7A4D;--pass-bg:#E2F1E8;--fail:#B3261E;--fail-bg:#F8E1DE;--blue:#3D6FD9}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'IBM Plex Sans',Arial,sans-serif;background:var(--paper);color:var(--ink);font-size:16px;line-height:1.5}
+header{background:var(--ink);color:var(--paper);padding:24px 32px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+header .k{font-family:'JetBrains Mono',monospace;font-size:13px;letter-spacing:2px;color:var(--orange)}
+header h1{font-family:'Space Grotesk',sans-serif;font-size:30px;font-weight:600;letter-spacing:-.5px}
+header p{color:#B8BFCC;font-size:14px}
+nav{display:flex;gap:4px}
+nav button{font:inherit;font-size:14px;font-weight:500;background:transparent;color:#B8BFCC;border:1px solid #2C3442;border-radius:999px;padding:8px 16px;cursor:pointer}
+nav button.on{background:var(--orange);color:var(--ink);border-color:var(--orange)}
+main{max-width:1240px;margin:0 auto;padding:28px 32px 64px}
+.view{display:none}.view.on{display:block}
+.grid{display:grid;grid-template-columns:320px 1fr;gap:28px;align-items:start}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px}
+.panel h2{font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:600;margin-bottom:4px}
+.hint{font-size:13px;color:var(--muted)}
+.knob{padding:16px 0;border-top:1px solid var(--paper2)}
+.knob:first-of-type{border-top:none}
+.knob label{display:flex;justify-content:space-between;font-weight:600;font-size:14px}
+.knob label span.v{font-family:'JetBrains Mono',monospace;color:var(--orange-dk)}
+.knob input[type=range]{width:100%;margin:10px 0 2px;accent-color:var(--orange-dk)}
+.toggle{display:flex;align-items:center;gap:10px;cursor:pointer;font-weight:600;font-size:14px}
+.toggle input{width:18px;height:18px;accent-color:var(--orange-dk)}
+.btns{display:flex;gap:8px;margin-top:14px}
+button.act{font:inherit;font-weight:600;font-size:14px;border-radius:10px;padding:10px 14px;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:var(--paper);flex:1}
+button.ghost{background:#fff;color:var(--ink)}
+.scorebar{display:flex;align-items:center;gap:24px;margin-bottom:18px;flex-wrap:wrap}
+.score{font-family:'Space Grotesk',sans-serif;font-size:76px;font-weight:700;line-height:1;letter-spacing:-2px}
+.score small{font-size:20px;font-weight:500;color:var(--muted);letter-spacing:0;margin-left:6px}
+.history{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{font-family:'JetBrains Mono',monospace;font-size:12px;background:var(--paper2);border-radius:999px;padding:4px 10px}
+.chip.cur{background:var(--ink);color:var(--paper)}
+.legend{font-size:12px;color:var(--muted);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:14px}
+th{text-align:left;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;color:var(--muted);background:#FBFAF7;padding:10px 12px;border-bottom:1px solid var(--line);text-transform:uppercase}
+td{padding:10px 12px;border-bottom:1px solid var(--paper2);vertical-align:top}
+tr.q{cursor:pointer}
+tr.q:hover td{background:#FBFAF7}
+tr.sel td{background:#FFF4EE}
+.st{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px;white-space:nowrap}
+.st.p{background:var(--pass-bg);color:var(--pass)}.st.f{background:var(--fail-bg);color:var(--fail)}
+.ck{font-family:'JetBrains Mono',monospace;font-size:13px;text-align:center;white-space:nowrap}
+.ck.y{color:var(--pass)}.ck.n{color:var(--fail);font-weight:700}.ck.na{color:#B0B4BC}
+.ans{color:var(--muted);font-size:13px}
+.detail{background:var(--ink);color:var(--paper);border-radius:16px;padding:22px;margin-top:18px}
+.detail h3{font-family:'Space Grotesk',sans-serif;font-size:18px;margin-bottom:10px}
+.detail .lbl{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--orange);margin:14px 0 6px}
+.piece{background:var(--ink2);border:1px solid #2C3442;border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:14px}
+.piece .meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:#9AA3B2;margin-bottom:4px;display:flex;gap:10px;flex-wrap:wrap}
+.piece.right{border-color:#3E8F65}
+.piece .arch{color:#FF9C78}
+.diag{background:#2A2219;border-left:4px solid var(--orange);padding:10px 14px;border-radius:0 10px 10px 0;font-size:14px}
+mark{background:rgba(255,122,69,.28);color:inherit;border-radius:3px;padding:0 2px}
+.try{display:flex;gap:8px;margin-top:22px}
+.try input{flex:1;font:inherit;font-size:14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.docs{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.doc{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px}
+.doc h3{font-family:'JetBrains Mono',monospace;font-size:14px;margin-bottom:6px;display:flex;justify-content:space-between;gap:8px}
+.tag{font-size:11px;padding:2px 8px;border-radius:999px;background:var(--ink);color:var(--paper)}
+.tag.old{background:#E3D9D5;color:#8A3A1A}
+.doc.archived{opacity:.75}
+.doc.hidden{opacity:.35}
+.doc p{font-size:14px;color:#2D333D}
+.cut{display:inline;border-right:2px dashed var(--orange-dk);padding-right:3px;margin-right:3px}
+.bars{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.brow{display:grid;grid-template-columns:70px 1fr 1fr;gap:16px;align-items:center;font-size:13px}
+.track{background:var(--paper2);border-radius:6px;height:22px;position:relative;overflow:hidden}
+.fill{height:100%;border-radius:6px}
+.fill.hit{background:var(--blue)}.fill.noise{background:var(--orange)}
+.track span{position:absolute;right:8px;top:2px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600}
+.brow.cur{font-weight:700}
+.bhead{display:grid;grid-template-columns:70px 1fr 1fr;gap:16px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase}
+.callout{margin-top:18px;font-size:14px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <p class="k">SESSION 05 · LAKEVIEW INSTITUTE</p>
+    <h1>RAG Report Card Lab</h1>
+    <p>Turn one knob, re-run the test set and watch the score move.</p>
+  </div>
+  <nav>
+    <button data-v="card" class="on">Report card</button>
+    <button data-v="library">Library</button>
+    <button data-v="tradeoff">How many pieces?</button>
+  </nav>
+</header>
+<main>
+
+<section class="view on" id="v-card">
+  <div class="grid">
+    <div class="panel">
+      <h2>The knobs</h2>
+      <p class="hint">Change one at a time. The score updates as you go.</p>
+      <div class="knob">
+        <label>1 · Piece size <span class="v" id="cs-v"></span></label>
+        <input type="range" id="cs" min="0" max="5" step="1">
+        <p class="hint">How many words go in each piece when we cut up the documents.</p>
+      </div>
+      <div class="knob">
+        <label>2 · Pieces handed to the AI <span class="v" id="k-v"></span></label>
+        <input type="range" id="k" min="1" max="10" step="1">
+        <p class="hint">How many of the best-matching pieces the Finder passes on.</p>
+      </div>
+      <div class="knob">
+        <label class="toggle"><input type="checkbox" id="arch"> 3 · Archive old documents</label>
+        <p class="hint">Leave documents marked “archived” out of the search.</p>
+      </div>
+      <div class="knob">
+        <label class="toggle"><input type="checkbox" id="rw"> 4 · Rewrite questions</label>
+        <p class="hint">Add the words the documents use, e.g. “medical” → “illness”.</p>
+      </div>
+      <div class="knob">
+        <label class="toggle"><input type="checkbox" id="strict" checked> 5 · “Say I don't know” rule</label>
+        <p class="hint">When nothing matches well, admit it instead of guessing.</p>
+      </div>
+      <div class="btns">
+        <button class="act ghost" id="reset">Reset to baseline</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="scorebar">
+        <div class="score" id="score">–</div>
+        <div>
+          <p class="hint" id="scoretext"></p>
+          <div class="history" id="history"></div>
+        </div>
+      </div>
+      <p class="legend">✓ passed · ✗ failed · – doesn't apply. Click any row to see what the Finder found.</p>
+      <table>
+        <thead><tr><th>Result</th><th>Question &amp; answer</th><th class="ck">Found</th><th class="ck">Correct</th><th class="ck">Grounded</th><th class="ck">Fresh</th><th class="ck">Honest</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div id="detail"></div>
+      <div class="try">
+        <input id="ask" placeholder="Try your own question, e.g. Can I cook in my hostel room?">
+        <button class="act" id="askbtn" style="flex:0 0 auto">Ask</button>
+      </div>
+      <div id="askout"></div>
+    </div>
+  </div>
+</section>
+
+<section class="view" id="v-library">
+  <p class="hint" style="margin-bottom:16px">Eight Lakeview documents. Dashed lines show where the current piece size cuts them. Archived documents fade out when “Archive old documents” is on.</p>
+  <div class="docs" id="docs"></div>
+</section>
+
+<section class="view" id="v-tradeoff">
+  <div class="panel">
+    <h2>More pieces: better chance of finding the right page, more noise to read</h2>
+    <p class="hint">Using the current piece size (<b id="to-cs"></b>). Blue = how often the right page is in the pile. Orange = how much of the pile is irrelevant.</p>
+    <div class="bhead" style="margin-top:16px"><span>Pieces</span><span>Right page included</span><span>Irrelevant text</span></div>
+    <div class="bars" id="bars"></div>
+    <div class="callout"><b>Why noise matters:</b> a real AI reading a long pile tends to miss facts in the middle (“lost in the middle”), and it costs more and runs slower. Most teams start with 3–5 pieces and test from there.</div>
+  </div>
+</section>
+</main>
+
+<script>
+const DOCUMENTS = [
+ {id:"library_rules",status:"current",text:"Students may borrow up to 4 books at a time for 14 days. The late fee is Rs 5 per day for each book, up to a maximum of Rs 200 per book. Reference books and journals cannot be taken out of the library. Lost books must be replaced or paid for at twice the cover price."},
+ {id:"attendance_policy_2023",status:"archived",text:"Attendance policy 2023. Students must maintain minimum attendance of 75 percent in every course. Students with a medical certificate can get a medical relaxation of up to 10 percent attendance. Students below the minimum attendance cannot sit for the end-term exam."},
+ {id:"attendance_policy_2026",status:"current",text:"Attendance policy, effective July 2026. This policy replaces the 2023 policy. The minimum attendance is now 80 percent in every course. Relaxation for documented illness is limited to 5 percent. Students below the minimum cannot sit for the end-term exam."},
+ {id:"exam_rules",status:"current",text:"Results are published within 30 days of the last exam. A student who fails a course may apply for a re-exam within 7 days of results. The re-exam fee is Rs 1500 per course. Revaluation of an answer sheet costs Rs 500."},
+ {id:"fee_refund",status:"current",text:"If a student withdraws before classes begin, the full fee is refunded minus a processing charge of Rs 1000. If a student withdraws within the first two weeks of classes, 50 percent of the tuition fee is refunded. No refund is given after the first two weeks."},
+ {id:"hostel_rules",status:"current",text:"The hostel gate closes at 10:30 PM every night. Visitors are allowed in the common room until 7 PM. Cooking appliances are not permitted in rooms."},
+ {id:"placement_rules",status:"current",text:"Students with no active backlogs can register for campus placements. A registered student may apply to as many companies as they like during the placement season, and may attend interviews with several companies in the same week. However, once a student accepts a job offer, they are removed from the placement process and cannot apply to any other company."},
+ {id:"clubs",status:"current",text:"Any group of 15 students can start a new club. Every club needs a faculty advisor and must hold at least 4 events per semester."}
+];
+const TESTS = [
+ {q:"What is the late fee for a library book?",must:["5"],src:"library_rules"},
+ {q:"How many days can I keep a borrowed book?",must:["14"],src:"library_rules"},
+ {q:"What is the minimum attendance required in every course?",must:["80"],src:"attendance_policy_2026"},
+ {q:"How much attendance relaxation can I get with a medical certificate?",must:["5 percent"],src:"attendance_policy_2026"},
+ {q:"What is the re-exam fee?",must:["1500"],src:"exam_rules"},
+ {q:"Will I get a refund if I withdraw in the first two weeks?",must:["50"],src:"fee_refund"},
+ {q:"When does the hostel gate close?",must:["10:30"],src:"hostel_rules"},
+ {q:"Can I apply to other companies after I accept a job offer in placements?",must:["cannot"],src:"placement_rules"},
+ {q:"How many students do I need to start a club?",must:["15"],src:"clubs"},
+ {q:"What is the canteen menu on Fridays?",must:[],src:null},
+ {q:"Who is the principal of Lakeview?",must:[],src:null}
+];
+const SIZES=[8,15,25,40,60,100];
+const STOP=new Set("a an the is are was were be to of in on for at by with and or if i my me we you your it its this that what when how can do does will many much any as from into up per who which there their they them not no get".split(" "));
+const SYN={medical:"illness",certificate:"documented"};
+const MIN_MATCH=2;
+
+function words(t){return (t.toLowerCase().match(/[a-z0-9:]+/g)||[]).filter(w=>!STOP.has(w)).map(w=>w.length>3?w.replace(/s+$/,""):w);}
+function makeChunks(size,incArch){const out=[];for(const d of DOCUMENTS){if(d.status==="archived"&&!incArch)continue;const tk=d.text.split(/\s+/);for(let i=0;i<tk.length;i+=size)out.push({doc:d.id,status:d.status,text:tk.slice(i,i+size).join(" ")});}return out;}
+function score(q,t){const a=new Set(words(q)),b=new Set(words(t));let n=0;for(const w of a)if(b.has(w))n++;return n;}
+function retrieve(q,chunks,k){return chunks.map((c,i)=>({...c,s:score(q,c.text),i})).sort((a,b)=>b.s-a.s||a.i-b.i).slice(0,k);}
+function rewrite(q){const ex=(q.toLowerCase().match(/[a-z]+/g)||[]).filter(w=>SYN[w]).map(w=>SYN[w]);return ex.length?q+" "+ex.join(" "):q;}
+function answer(q,got,strict){let best=null,bd=null,bs=0;for(const c of got){for(const s of c.text.split(/(?<=[.!?])\s+/)){const sc=score(q,s);if(sc>bs){best=s;bd=c;bs=sc;}}}
+ if(bs<MIN_MATCH){ if(strict||!got.length) return {text:"I don't know. The documents don't say.",cited:null,status:null};
+   const c=got[0];const s=c.text.split(/(?<=[.!?])\s+/)[0];return {text:s,cited:c.doc,status:c.status,guess:true};}
+ return {text:best,cited:bd.doc,status:bd.status};}
+function grade(t,got,r){const c={};if(t.src){c.found=got.some(g=>g.doc===t.src);c.correct=r.cited!==null&&t.must.every(m=>r.text.includes(m));c.grounded=r.cited===t.src;c.fresh=r.status!=="archived";}else{c.honest=r.cited===null;}c.PASS=Object.values(c).every(Boolean);return c;}
+
+const st={cs:3,k:3,arch:false,rw:false,strict:true,sel:null};
+let hist=[];
+const $=id=>document.getElementById(id);
+
+function settingsLabel(){return `${SIZES[st.cs]}w·${st.k}p${st.arch?"·arch":""}${st.rw?"·rw":""}${st.strict?"":"·guess"}`;}
+function runAll(){const ch=makeChunks(SIZES[st.cs],!st.arch);return TESTS.map(t=>{const q=st.rw?rewrite(t.q):t.q;const got=retrieve(q,ch,st.k);const r=answer(q,got,st.strict);return {t,q,got,r,g:grade(t,got,r)};});}
+
+function diagnose(x){const g=x.g;if(g.PASS)return "Passed every check.";
+ if(!x.t.src)return "<b>Writer</b> problem: the answer isn't in the documents, but the AI answered anyway. Fix: the “say I don't know” rule (knob 5).";
+ if(x.r.status==="archived")return "<b>Library</b> problem: an archived (old) version won. Fix: archive old documents (knob 3).";
+ if(!g.found)return "<b>Finder</b> problem: the right page wasn't in the pile. The student's words don't match the document's words. Fix: rewrite questions (knob 4), or hand over more pieces (knob 2).";
+ if(g.grounded&&!g.correct)return "<b>Finder</b> problem: the right page was found but the sentence was cut in half, so the answer is missing its ending. Fix: bigger pieces (knob 1).";
+ if(x.r.cited===null)return "<b>Finder</b> problem: the right page was in the pile, but no sentence matched the question's words well enough. Fix: rewrite questions (knob 4).";
+ return "The answer came from the wrong page. Check which piece won and why its words matched.";}
+
+const ck=v=>v===undefined?'<td class="ck na">–</td>':v?'<td class="ck y">✓</td>':'<td class="ck n">✗</td>';
+function hl(text,q){const qs=new Set(words(q));return text.replace(/[A-Za-z0-9:]+/g,w=>{const n=words(w)[0];return n&&qs.has(n)?`<mark>${w}</mark>`:w;});}
+
+function render(){
+ $("cs").value=st.cs;$("cs-v").textContent=SIZES[st.cs]+" words";$("k").value=st.k;$("k-v").textContent=st.k;
+ $("arch").checked=st.arch;$("rw").checked=st.rw;$("strict").checked=st.strict;
+ const res=runAll();const pass=res.filter(x=>x.g.PASS).length;const pct=Math.round(100*pass/res.length);
+ $("score").innerHTML=pct+"%<small>"+pass+" / "+res.length+" passed</small>";
+ $("score").style.color=pct>=100?"var(--pass)":pct>=80?"var(--ink)":"var(--fail)";
+ const lab=settingsLabel();if(!hist.length||hist[hist.length-1].lab!==lab){hist.push({lab,pct});if(hist.length>8)hist.shift();}
+ $("scoretext").textContent="Score history (piece size · pieces · settings)";
+ $("history").innerHTML=hist.map((h,i)=>`<span class="chip${i===hist.length-1?" cur":""}">${h.lab} → ${h.pct}%</span>`).join("");
+ $("rows").innerHTML=res.map((x,i)=>`<tr class="q${st.sel===i?" sel":""}" data-i="${i}"><td><span class="st ${x.g.PASS?"p":"f"}">${x.g.PASS?"PASS":"FAIL"}</span></td><td><div>${x.t.q}</div><div class="ans">→ ${x.r.text}${x.r.cited?` <span class="mono">[${x.r.cited}]</span>`:""}</div></td>${ck(x.g.found)}${ck(x.g.correct)}${ck(x.g.grounded)}${ck(x.g.fresh)}${ck(x.g.honest)}</tr>`).join("");
+ document.querySelectorAll("tr.q").forEach(r=>r.onclick=()=>{st.sel=+r.dataset.i===st.sel?null:+r.dataset.i;render();});
+ if(st.sel!==null){const x=res[st.sel];
+  $("detail").innerHTML=`<div class="detail"><h3>${x.t.q}</h3>${x.q!==x.t.q?`<p class="hint" style="color:#9AA3B2">Rewritten question: ${x.q}</p>`:""}
+  <p class="lbl">PIECES THE FINDER HANDED OVER (best match first)</p>${x.got.map((c,j)=>`<div class="piece${c.doc===x.t.src?" right":""}"><div class="meta"><span>#${j+1}</span><span>${c.doc}</span><span>${c.s} matching words</span>${c.status==="archived"?'<span class="arch">ARCHIVED</span>':""}${c.doc===x.t.src?'<span style="color:#7FD1A3">expected source</span>':""}</div>${hl(c.text,x.q)}</div>`).join("")}
+  <p class="lbl">ANSWER</p><p>${x.r.text} ${x.r.cited?`<span class="mono">[${x.r.cited}]</span>`:""}</p>
+  <p class="lbl">ANSWER KEY</p><p>${x.t.src?`Must contain “${x.t.must.join(", ")}”, from ${x.t.src}`:"Not in the documents: the right answer is “I don't know”."}</p>
+  <p class="lbl">DIAGNOSIS</p><div class="diag">${diagnose(x)}</div></div>`;
+ } else $("detail").innerHTML="";
+ renderDocs();renderBars();
+}
+
+function renderDocs(){const size=SIZES[st.cs];
+ $("docs").innerHTML=DOCUMENTS.map(d=>{const tk=d.text.split(/\s+/);let parts=[];for(let i=0;i<tk.length;i+=size)parts.push(tk.slice(i,i+size).join(" "));
+  const hidden=d.status==="archived"&&st.arch;
+  return `<div class="doc ${d.status}${hidden?" hidden":""}"><h3>${d.id}<span class="tag${d.status==="archived"?" old":""}">${d.status}${hidden?" · not searched":""}</span></h3><p>${parts.map((p,i)=>i<parts.length-1?`<span class="cut">${p}</span>`:p).join(" ")}</p><p class="hint" style="margin-top:8px">${parts.length} piece${parts.length>1?"s":""}</p></div>`;}).join("");}
+
+function renderBars(){const size=SIZES[st.cs];$("to-cs").textContent=size+" words per piece";const ch=makeChunks(size,!st.arch);const ans=TESTS.filter(t=>t.src);let html="";
+ for(let k=1;k<=10;k++){let hit=0,noise=0;for(const t of ans){const g=retrieve(t.q,ch,k);hit+=g.some(c=>c.doc===t.src)?1:0;noise+=g.filter(c=>c.doc!==t.src).length/g.length;}
+  const h=Math.round(100*hit/ans.length),n=Math.round(100*noise/ans.length);
+  html+=`<div class="brow${k===st.k?" cur":""}"><span>${k} piece${k>1?"s":""}${k===st.k?" ◂":""}</span><div class="track"><div class="fill hit" style="width:${h}%"></div><span>${h}%</span></div><div class="track"><div class="fill noise" style="width:${n}%"></div><span>${n}%</span></div></div>`;}
+ $("bars").innerHTML=html;}
+
+$("cs").oninput=e=>{st.cs=+e.target.value;render();};
+$("k").oninput=e=>{st.k=+e.target.value;render();};
+$("arch").onchange=e=>{st.arch=e.target.checked;render();};
+$("rw").onchange=e=>{st.rw=e.target.checked;render();};
+$("strict").onchange=e=>{st.strict=e.target.checked;render();};
+$("reset").onclick=()=>{Object.assign(st,{cs:3,k:3,arch:false,rw:false,strict:true,sel:null});render();};
+function ask(){const q0=$("ask").value.trim();if(!q0)return;const q=st.rw?rewrite(q0):q0;const got=retrieve(q,makeChunks(SIZES[st.cs],!st.arch),st.k);const r=answer(q,got,st.strict);
+ $("askout").innerHTML=`<div class="detail"><h3>${q0.replace(/</g,"&lt;")}</h3><p class="lbl">ANSWER</p><p>${r.text} ${r.cited?`<span class="mono">[${r.cited}]</span>`:""}</p><p class="lbl">PIECES FOUND</p>${got.map((c,j)=>`<div class="piece"><div class="meta"><span>#${j+1}</span><span>${c.doc}</span><span>${c.s} matching words</span></div>${hl(c.text,q)}</div>`).join("")}<p class="hint" style="color:#9AA3B2;margin-top:8px">Is this answer right? Grounded? Fresh? Grade it like the others.</p></div>`;}
+$("askbtn").onclick=ask;$("ask").onkeydown=e=>{if(e.key==="Enter")ask();};
+document.querySelectorAll("nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("on",x===b));document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.id==="v-"+b.dataset.v));});
+render();
+</script>
+</body>
+</html>
