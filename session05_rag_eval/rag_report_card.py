@@ -178,9 +178,12 @@ if __name__ == "__main__":
 def ask_real_llm(question, retrieved):
     """
     How a real system would answer. Not run by default.
-    Requires: pip install anthropic   and an ANTHROPIC_API_KEY.
+    Uses the workspace LLM configured in ../.env (see ../llm.py). No installs.
     """
-    import anthropic
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from llm import chat
     context = "\n\n".join(f"[{ch['doc']}] {ch['text']}" for ch in retrieved)
     prompt = (
         "Answer the question using ONLY the documents below. "
@@ -188,7 +191,4 @@ def ask_real_llm(question, retrieved):
         "If the documents do not contain the answer, say \"I don't know\".\n\n"
         f"DOCUMENTS:\n{context}\n\nQUESTION: {question}"
     )
-    client = anthropic.Anthropic()
-    msg = client.messages.create(model="claude-haiku-5-5", max_tokens=300,
-                                 messages=[{"role": "user", "content": prompt}])
-    return msg.content[0].text
+    return chat(prompt, max_tokens=300)
