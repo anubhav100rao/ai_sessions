@@ -5,3 +5,5 @@
 5. https://docs.google.com/presentation/d/1E2f7BCZfjJR6RkPNZ_AbWGx8CgVTUYWfO51yyE5jwt4/edit?usp=sharing
 6. https://docs.google.com/presentation/d/1XWxV_qifHtnB-31vLK8vB43BMbtP6wiVW2Soe8i0KRQ/edit?usp=sharing
 7. https://docs.google.com/presentation/d/1G_EQS4eP4YXy73eWO_NWHpqzsJcjLhPBU6LEhXkxY4o/edit?usp=sharing
+8. https://docs.google.com/presentation/d/1oak4_-u_A0Z337m9BsCMQ9QsxoZXBYOASgrdD_Oj7Og/edit?usp=sharing
+9. https://docs.google.com/presentation/d/1QKMUHvGnRSTD4nVPLzdqxr_McLs-zRMjpx638c-SFaw/edit?usp=sharing
